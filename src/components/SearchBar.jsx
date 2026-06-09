@@ -53,7 +53,7 @@ const SearchBar = ({ onSearch, onPlay }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-full max-w-md mx-auto mb-8" ref={dropdownRef}>
+    <form onSubmit={handleSubmit} className="relative w-full max-w-md mx-auto" ref={dropdownRef}>
       <div className="relative group">
         <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none z-10">
           <Search className="w-5 h-5 text-slate-400 group-focus-within:text-primary-blue transition-colors" />

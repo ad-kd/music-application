@@ -237,59 +237,59 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
         />
       </div>
 
-      <div className="bg-[#08090d]/95 backdrop-blur-2xl border-t border-white/5 px-6 py-3 flex items-center gap-4">
+      <div className="bg-[#08090d]/95 backdrop-blur-2xl border-t border-white/5 px-4 md:px-6 py-2 md:py-3 flex items-center justify-between gap-2 md:gap-4">
         {/* Song Info */}
-        <div className="flex items-center gap-3 w-[260px] flex-shrink-0">
+        <div className="flex items-center gap-3 md:w-1/3 min-w-0 flex-1">
           <img
             src={currentSong.thumbnail}
             alt={currentSong.title}
-            className="w-12 h-12 rounded-lg object-cover shadow-lg flex-shrink-0"
+            className="w-10 h-10 md:w-12 md:h-12 rounded-md md:rounded-lg object-cover shadow-lg flex-shrink-0"
           />
-          <div className="min-w-0">
-            <h4 className="text-white font-semibold text-sm truncate">{currentSong.title}</h4>
-            <p className="text-slate-400 text-xs truncate">{currentSong.artist}</p>
+          <div className="min-w-0 flex-1">
+            <h4 className="text-white font-semibold text-xs md:text-sm truncate">{currentSong.title}</h4>
+            <p className="text-slate-400 text-[10px] md:text-xs truncate">{currentSong.artist}</p>
           </div>
           <button
             onClick={() => toggleFavorite && toggleFavorite(currentSong)}
-            className={`ml-2 flex-shrink-0 transition-colors ${isLiked ? 'text-pink-500' : 'text-slate-500 hover:text-white'}`}
+            className={`flex-shrink-0 transition-colors mr-2 md:mr-0 ${isLiked ? 'text-pink-500' : 'text-slate-500 hover:text-white'}`}
           >
-            <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isLiked ? 'fill-current' : ''}`} />
           </button>
         </div>
 
         {/* Main Controls */}
-        <div className="flex flex-col items-center flex-1 gap-1">
-          <div className="flex items-center gap-6">
+        <div className="flex items-center md:flex-col md:flex-1 md:max-w-lg md:gap-1">
+          <div className="flex items-center gap-3 md:gap-6">
             <button
               onClick={() => setIsShuffling((s) => !s)}
-              className={`transition-colors ${isShuffling ? 'text-primary-blue' : 'text-slate-400 hover:text-white'}`}
+              className={`hidden md:block transition-colors ${isShuffling ? 'text-primary-blue' : 'text-slate-400 hover:text-white'}`}
               title="Shuffle"
             >
               <Shuffle className="w-4 h-4" />
             </button>
 
-            <button onClick={handlePrev} className="text-slate-300 hover:text-white transition-colors">
+            <button onClick={handlePrev} className="hidden md:block text-slate-300 hover:text-white transition-colors">
               <SkipBack className="w-5 h-5 fill-current" />
             </button>
 
             <button
               onClick={handlePlayPause}
-              className="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform flex-shrink-0"
+              className="w-9 h-9 md:w-11 md:h-11 bg-white rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.25)] hover:scale-105 active:scale-95 transition-transform flex-shrink-0"
             >
               {isPlaying ? (
-                <Pause className="w-5 h-5 text-black fill-current" />
+                <Pause className="w-4 h-4 md:w-5 md:h-5 text-black fill-current" />
               ) : (
-                <Play className="w-5 h-5 text-black fill-current ml-0.5" />
+                <Play className="w-4 h-4 md:w-5 md:h-5 text-black fill-current ml-0.5" />
               )}
             </button>
 
             <button onClick={handleNext} className="text-slate-300 hover:text-white transition-colors">
-              <SkipForward className="w-5 h-5 fill-current" />
+              <SkipForward className="w-5 h-5 md:w-5 md:h-5 fill-current" />
             </button>
 
             <button
               onClick={() => setIsRepeating((r) => !r)}
-              className={`transition-colors ${isRepeating ? 'text-primary-blue' : 'text-slate-400 hover:text-white'}`}
+              className={`hidden md:block transition-colors ${isRepeating ? 'text-primary-blue' : 'text-slate-400 hover:text-white'}`}
               title="Repeat"
             >
               <Repeat className="w-4 h-4" />
@@ -297,7 +297,7 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
           </div>
 
           {/* Time */}
-          <div className="flex items-center gap-2 text-[11px] text-slate-500 w-full max-w-xs justify-center">
+          <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-500 w-full max-w-xs justify-center">
             <span className="w-8 text-right">{formatTime(currentTime)}</span>
             <span>/</span>
             <span className="w-8">{formatTime(duration)}</span>
@@ -305,7 +305,7 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
         </div>
 
         {/* Volume */}
-        <div className="flex items-center gap-3 w-[200px] justify-end flex-shrink-0">
+        <div className="hidden md:flex items-center gap-3 w-1/3 justify-end flex-shrink-0">
           <button onClick={toggleMute} className="text-slate-400 hover:text-white transition-colors">
             {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>

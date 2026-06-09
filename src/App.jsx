@@ -94,16 +94,17 @@ const App = () => {
       <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/30 rounded-full blur-[120px] pointer-events-none z-0"></div>
 
       <div className="relative z-10 w-full max-w-[1600px] mx-auto">
-        <Navbar activeView={activeView} setActiveView={setActiveView} />
+        <Navbar 
+          activeView={activeView} 
+          setActiveView={setActiveView} 
+          onSearch={(q) => { setActiveView('Home'); handleSearch(q); }} 
+          onPlay={handlePlay} 
+        />
 
         <div className="flex w-full mt-2">
           <Sidebar activeView={activeView} setActiveView={setActiveView} />
           
           <main className="flex-1 px-4 py-8 md:px-8 w-full max-w-[1200px] mx-auto">
-            <SearchBar 
-              onSearch={(q) => { setActiveView('Home'); handleSearch(q); }} 
-              onPlay={handlePlay} 
-            />
             
             {activeView === 'Favorites' ? (
               <div className="mb-8">
