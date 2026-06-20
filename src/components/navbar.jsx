@@ -5,6 +5,16 @@ import { User, Menu, X } from 'lucide-react';
 const Navbar = ({ activeView, setActiveView, onSearch, onPlay }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const menuItems = [
+    { name: 'Home', value: 'Home' },
+    { name: 'Trending', value: 'Trending' },
+    { name: 'Artists', value: 'Artists' },
+    { name: 'Albums', value: 'Albums' },
+    { name: 'Playlists', value: 'Playlists' },
+    { name: 'Recent Plays', value: 'Recent' },
+    { name: 'Favorites', value: 'Favorites' }
+  ];
+
   return (
     <nav className="relative mx-4 mt-4 flex items-center justify-between rounded-full border border-primary-blue/30 bg-panel-bg/80 px-6 py-3 text-sm text-white backdrop-blur-md z-40">
       {/* Logo */}
@@ -54,16 +64,16 @@ const Navbar = ({ activeView, setActiveView, onSearch, onPlay }) => {
           />
           
           <div className="flex flex-col gap-4">
-            {["Home", "Favorites", "Recent"].map((item) => (
+            {menuItems.map((item) => (
               <button
-                key={item}
+                key={item.value}
                 onClick={() => {
-                  setActiveView(item);
+                  setActiveView(item.value);
                   setMenuOpen(false);
                 }}
-                className={`text-lg font-medium text-left transition ${item === activeView ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
+                className={`text-lg font-medium text-left transition ${item.value === activeView ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
               >
-                {item}
+                {item.name}
               </button>
             ))}
           </div>

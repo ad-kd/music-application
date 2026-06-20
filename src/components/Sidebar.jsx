@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Heart, Clock } from 'lucide-react';
+import { Home, Heart, Clock, Music, Users, ListMusic, Disc } from 'lucide-react';
 
 const Sidebar = ({ activeView, setActiveView }) => {
   return (
@@ -17,6 +17,15 @@ const Sidebar = ({ activeView, setActiveView }) => {
                 <span>Home</span>
               </button>
             </li>
+            <li>
+              <button 
+                onClick={() => setActiveView('Trending')}
+                className={`flex items-center w-full font-medium transition group ${activeView === 'Trending' ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
+              >
+                <Music className={`w-5 h-5 mr-4 ${activeView === 'Trending' ? '' : 'text-slate-400 group-hover:text-primary-blue transition'}`} />
+                <span>Trending</span>
+              </button>
+            </li>
           </ul>
         </div>
         
@@ -25,11 +34,29 @@ const Sidebar = ({ activeView, setActiveView }) => {
           <ul className="space-y-3">
             <li>
               <button 
-                onClick={() => setActiveView('Favorites')}
-                className={`flex items-center w-full font-medium transition group ${activeView === 'Favorites' ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
+                onClick={() => setActiveView('Artists')}
+                className={`flex items-center w-full font-medium transition group ${activeView === 'Artists' ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
               >
-                <Heart className={`w-5 h-5 mr-4 ${activeView === 'Favorites' ? '' : 'text-slate-400 group-hover:text-primary-blue transition'}`} />
-                <span>Favorites</span>
+                <Users className={`w-5 h-5 mr-4 ${activeView === 'Artists' ? '' : 'text-slate-400 group-hover:text-primary-blue transition'}`} />
+                <span>Artists</span>
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setActiveView('Albums')}
+                className={`flex items-center w-full font-medium transition group ${activeView === 'Albums' ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
+              >
+                <Disc className={`w-5 h-5 mr-4 ${activeView === 'Albums' ? '' : 'text-slate-400 group-hover:text-primary-blue transition'}`} />
+                <span>Albums</span>
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setActiveView('Playlists')}
+                className={`flex items-center w-full font-medium transition group ${activeView === 'Playlists' ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
+              >
+                <ListMusic className={`w-5 h-5 mr-4 ${activeView === 'Playlists' ? '' : 'text-slate-400 group-hover:text-primary-blue transition'}`} />
+                <span>Playlists</span>
               </button>
             </li>
             <li>
@@ -38,7 +65,16 @@ const Sidebar = ({ activeView, setActiveView }) => {
                 className={`flex items-center w-full font-medium transition group ${activeView === 'Recent' ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
               >
                 <Clock className={`w-5 h-5 mr-4 ${activeView === 'Recent' ? '' : 'text-slate-400 group-hover:text-primary-blue transition'}`} />
-                <span>Recent</span>
+                <span>Recent Plays</span>
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setActiveView('Favorites')}
+                className={`flex items-center w-full font-medium transition group ${activeView === 'Favorites' ? 'text-primary-blue' : 'text-slate-300 hover:text-white'}`}
+              >
+                <Heart className={`w-5 h-5 mr-4 ${activeView === 'Favorites' ? '' : 'text-slate-400 group-hover:text-primary-blue transition'}`} />
+                <span>Favorites</span>
               </button>
             </li>
           </ul>

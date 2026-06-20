@@ -1,27 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Shuffle, Repeat } from 'lucide-react';
-
-// Load YouTube IFrame API script once
-let ytApiLoaded = false;
-function loadYouTubeApi(callback) {
-  if (ytApiLoaded && window.YT && window.YT.Player) {
-    callback();
-    return;
-  }
-  if (!ytApiLoaded) {
-    ytApiLoaded = true;
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(tag);
-  }
-  // Poll until ready
-  const interval = setInterval(() => {
-    if (window.YT && window.YT.Player) {
-      clearInterval(interval);
-      callback();
-    }
-  }, 100);
-}
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Shuffle, Repeat, ListMusic, ChevronDown } from 'lucide-react';
 
 const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -38,173 +16,104 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
   const [duration, setDuration] = useState(0);
   const [isRepeating, setIsRepeating] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
+  const [showQueue, setShowQueue] = useState(false);
 
-  const playerRef = useRef(null);      // YT.Player instance
-  const containerRef = useRef(null);   // div for the iframe
-  const intervalRef = useRef(null);    // progress timer
+  const audioRef = useRef(null);
 
   const isLiked = currentSong && favorites && favorites.some(s => s.id === currentSong.id);
 
-  const stopTimer = () => clearInterval(intervalRef.current);
-
-  const startTimer = useCallback(() => {
-    stopTimer();
-    intervalRef.current = setInterval(() => {
-      if (playerRef.current && playerRef.current.getCurrentTime) {
-        setCurrentTime(playerRef.current.getCurrentTime());
-      }
-    }, 500);
-  }, []);
-
-  // Create / recreate YT player when song changes
+  // Sync volume
   useEffect(() => {
-    if (!currentSong) return;
-
-    const initPlayer = () => {
-      // Destroy old player if exists
-      if (playerRef.current && playerRef.current.destroy) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-
-      playerRef.current = new window.YT.Player(containerRef.current, {
-        videoId: currentSong.id,
-        height: '1',
-        width: '1',
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          rel: 0,
-          modestbranding: 1,
-        },
-        events: {
-          onReady: (event) => {
-            event.target.setVolume(volume);
-            event.target.playVideo();
-            setIsPlaying(true);
-            setDuration(event.target.getDuration());
-            setCurrentTime(0);
-            startTimer();
-          },
-          onStateChange: (event) => {
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              setIsPlaying(true);
-              startTimer();
-              setDuration(event.target.getDuration());
-            } else if (
-              event.data === window.YT.PlayerState.PAUSED ||
-              event.data === window.YT.PlayerState.BUFFERING
-            ) {
-              setIsPlaying(false);
-              stopTimer();
-            } else if (event.data === window.YT.PlayerState.ENDED) {
-              setIsPlaying(false);
-              stopTimer();
-              if (isRepeating) {
-                event.target.seekTo(0);
-                event.target.playVideo();
-              } else {
-                handleNext();
-              }
-            }
-          },
-        },
-      });
-    };
-
-    loadYouTubeApi(initPlayer);
-
-    return () => {
-      stopTimer();
-    };
-  }, [currentSong]);
-
-  // Sync volume changes to player
-  useEffect(() => {
-    if (playerRef.current && playerRef.current.setVolume) {
-      if (isMuted) {
-        playerRef.current.mute();
-      } else {
-        playerRef.current.unMute();
-        playerRef.current.setVolume(volume);
-      }
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume / 100;
     }
   }, [volume, isMuted]);
 
+  // Handle song change
+  useEffect(() => {
+    if (currentSong && audioRef.current) {
+      audioRef.current.src = currentSong.downloadUrl || '';
+      audioRef.current.play().then(() => {
+        setIsPlaying(true);
+      }).catch(err => {
+        console.error("Audio playback error:", err);
+        setIsPlaying(false);
+      });
+    }
+  }, [currentSong]);
+
   const handlePlayPause = () => {
-    if (!playerRef.current) return;
+    if (!audioRef.current || !currentSong) return;
     if (isPlaying) {
-      playerRef.current.pauseVideo();
+      audioRef.current.pause();
+      setIsPlaying(false);
     } else {
-      playerRef.current.playVideo();
+      audioRef.current.play();
+      setIsPlaying(true);
     }
   };
 
   const handleSeek = (e) => {
     const val = parseFloat(e.target.value);
-    setCurrentTime(val);
-    if (playerRef.current && playerRef.current.seekTo) {
-      playerRef.current.seekTo(val, true);
+    if (audioRef.current) {
+      audioRef.current.currentTime = val;
     }
+    setCurrentTime(val);
   };
 
   const handleVolumeChange = (e) => {
     const val = parseInt(e.target.value, 10);
     setVolume(val);
-    setIsMuted(val === 0);
+    if (val === 0) {
+      setIsMuted(true);
+    } else {
+      setIsMuted(false);
+    }
   };
 
   const toggleMute = () => {
-    setIsMuted((prev) => {
-      if (!prev) {
-        playerRef.current?.mute();
-      } else {
-        playerRef.current?.unMute();
-      }
-      return !prev;
-    });
+    setIsMuted(!isMuted);
   };
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (!songList || songList.length === 0 || !onSongChange) return;
-    const idx = songList.findIndex(
-      (s) => (s.id.videoId || s.id) === currentSong?.id
-    );
+    const idx = songList.findIndex((s) => s.id === currentSong?.id);
     let nextIdx;
     if (isShuffling) {
       nextIdx = Math.floor(Math.random() * songList.length);
     } else {
       nextIdx = (idx + 1) % songList.length;
     }
-    const next = songList[nextIdx];
-    const vid = next.id.videoId || next.id;
-    onSongChange({
-      id: vid,
-      title: next.snippet.title,
-      thumbnail: next.snippet.thumbnails.high.url,
-      artist: next.snippet.channelTitle,
-    });
-  };
+    onSongChange(songList[nextIdx]);
+  }, [songList, currentSong, isShuffling, onSongChange]);
 
   const handlePrev = () => {
     if (!songList || songList.length === 0 || !onSongChange) return;
     if (currentTime > 3) {
-      playerRef.current?.seekTo(0, true);
-      setCurrentTime(0);
+      if (audioRef.current) audioRef.current.currentTime = 0;
       return;
     }
-    const idx = songList.findIndex(
-      (s) => (s.id.videoId || s.id) === currentSong?.id
-    );
+    const idx = songList.findIndex((s) => s.id === currentSong?.id);
     const prevIdx = (idx - 1 + songList.length) % songList.length;
-    const prev = songList[prevIdx];
-    const vid = prev.id.videoId || prev.id;
-    onSongChange({
-      id: vid,
-      title: prev.snippet.title,
-      thumbnail: prev.snippet.thumbnails.high.url,
-      artist: prev.snippet.channelTitle,
-    });
+    onSongChange(songList[prevIdx]);
+  };
+
+  const handleEnded = () => {
+    if (isRepeating) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
+    } else {
+      handleNext();
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+      setDuration(audioRef.current.duration || 0);
+    }
   };
 
   if (!currentSong) return null;
@@ -213,14 +122,67 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-      {/* Hidden YT iframe container */}
-      <div
-        style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none', top: 0 }}
-      >
-        <div ref={containerRef} id="yt-player-container" />
-      </div>
+      <audio
+        ref={audioRef}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={handleEnded}
+        onLoadedMetadata={() => {
+          if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+          }
+        }}
+        preload="auto"
+      />
 
-      {/* Progress Bar (thin, sits above the player bar) */}
+      {/* Slide-out Queue / Up Next Panel */}
+      {showQueue && (
+        <div className="absolute bottom-[72px] right-4 w-80 max-h-[400px] bg-[#0c0e14]/95 border border-white/10 backdrop-blur-2xl rounded-3xl overflow-hidden flex flex-col shadow-[0_15px_50px_rgba(0,0,0,0.5)] transition-all duration-300">
+          <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+            <h3 className="font-bold text-sm text-slate-200 flex items-center gap-2">
+              <ListMusic className="w-4 h-4 text-primary-blue" />
+              Queue / Up Next
+            </h3>
+            <button 
+              onClick={() => setShowQueue(false)}
+              className="text-slate-400 hover:text-white transition"
+            >
+              <ChevronDown className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+            {songList && songList.length > 0 ? (
+              songList.map((song, i) => {
+                const isCurrent = song.id === currentSong.id;
+                return (
+                  <div
+                    key={song.id + i}
+                    onClick={() => onSongChange(song)}
+                    className={`flex items-center gap-3 p-2.5 rounded-2xl cursor-pointer transition ${
+                      isCurrent 
+                        ? 'bg-primary-blue/15 text-primary-blue border border-primary-blue/10' 
+                        : 'hover:bg-white/5 text-slate-300'
+                    }`}
+                  >
+                    <img 
+                      src={song.thumbnail} 
+                      alt={song.title} 
+                      className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className={`font-semibold text-xs truncate ${isCurrent ? 'text-primary-blue' : 'text-white'}`}>{song.title}</p>
+                      <p className="text-[10px] text-slate-400 truncate mt-0.5">{song.artist}</p>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-center text-xs text-slate-500 py-6">No songs in queue</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Progress Bar */}
       <div className="relative h-1 bg-slate-800 cursor-pointer group">
         <div
           className="absolute top-0 left-0 h-full bg-primary-blue transition-all"
@@ -304,8 +266,16 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
           </div>
         </div>
 
-        {/* Volume */}
+        {/* Volume & Queue */}
         <div className="hidden md:flex items-center gap-3 w-1/3 justify-end flex-shrink-0">
+          <button 
+            onClick={() => setShowQueue(!showQueue)} 
+            className={`mr-2 transition-colors ${showQueue ? 'text-primary-blue' : 'text-slate-400 hover:text-white'}`}
+            title="Queue"
+          >
+            <ListMusic className="w-5 h-5" />
+          </button>
+          
           <button onClick={toggleMute} className="text-slate-400 hover:text-white transition-colors">
             {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
