@@ -53,6 +53,16 @@ const App = () => {
     { id: '456860', name: 'Ilaiyaraaja', thumbnail: 'https://c.saavncdn.com/artists/Ilaiyaraaja_150x150.jpg' }
   ];
 
+  // Popular English artists with real IDs
+  const popularEnglishArtists = [
+    { id: '565990', name: 'Taylor Swift', thumbnail: 'https://c.saavncdn.com/artists/Taylor_Swift_003_20200226074119_150x150.jpg' },
+    { id: '578407', name: 'Ed Sheeran', thumbnail: 'https://c.saavncdn.com/artists/Ed_Sheeran_002_20250625073038_150x150.jpg' },
+    { id: '1918741', name: 'Billie Eilish', thumbnail: 'https://c.saavncdn.com/artists/Billie_Eilish_20190211151539_150x150.jpg' },
+    { id: '610240', name: 'Eminem', thumbnail: 'https://c.saavncdn.com/artists/Eminem_003_20240403152835_150x150.jpg' },
+    { id: '615155', name: 'The Weeknd', thumbnail: 'https://c.saavncdn.com/artists/The_Weeknd_002_20241003071400_150x150.jpg' },
+    { id: '568565', name: 'Justin Bieber', thumbnail: 'https://c.saavncdn.com/artists/Justin_Bieber_005_20201127112218_150x150.jpg' }
+  ];
+
   useEffect(() => {
     localStorage.setItem('spotifyFavorites', JSON.stringify(favorites));
   }, [favorites]);
@@ -295,34 +305,88 @@ const App = () => {
                       </div>
                     ) : (
                       <div>
-                        <h2 className="text-2xl font-bold mb-6 flex items-center">
-                          <span className="w-2 h-8 bg-emerald-500 rounded-full mr-3 inline-block"></span>
-                          Popular Tamil Artists
-                        </h2>
-                        {isLoading ? (
-                          <div className="flex justify-center items-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue"></div>
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                            {featuredArtists.map((artist) => (
-                              <div 
-                                key={artist.id}
-                                onClick={() => handleSelectArtist(artist)}
-                                className="bg-panel-bg/40 border border-white/5 hover:border-primary-blue/30 rounded-3xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,119,255,0.1)] group"
-                              >
-                                <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden mb-4 shadow-lg relative">
-                                  <img 
-                                    src={artist.thumbnail || 'https://via.placeholder.com/150'} 
-                                    alt={artist.name}
-                                    className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
-                                  />
-                                </div>
-                                <h3 className="font-bold text-sm md:text-base line-clamp-1 group-hover:text-primary-blue transition-colors">{artist.name}</h3>
-                                <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Artist</span>
+                        {searchQuery ? (
+                          <>
+                            <h2 className="text-2xl font-bold mb-6 flex items-center">
+                              <span className="w-2 h-8 bg-emerald-500 rounded-full mr-3 inline-block"></span>
+                              Search Results for "{searchQuery}"
+                            </h2>
+                            {isLoading ? (
+                              <div className="flex justify-center items-center h-64">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue"></div>
                               </div>
-                            ))}
-                          </div>
+                            ) : (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                                {featuredArtists.map((artist) => (
+                                  <div 
+                                    key={artist.id}
+                                    onClick={() => handleSelectArtist(artist)}
+                                    className="bg-panel-bg/40 border border-white/5 hover:border-primary-blue/30 rounded-3xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,119,255,0.1)] group"
+                                  >
+                                    <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden mb-4 shadow-lg relative">
+                                      <img 
+                                        src={artist.thumbnail || 'https://via.placeholder.com/150'} 
+                                        alt={artist.name}
+                                        className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                                      />
+                                    </div>
+                                    <h3 className="font-bold text-sm md:text-base line-clamp-1 group-hover:text-primary-blue transition-colors">{artist.name}</h3>
+                                    <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Artist</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <h2 className="text-2xl font-bold mb-6 flex items-center">
+                              <span className="w-2 h-8 bg-emerald-500 rounded-full mr-3 inline-block"></span>
+                              Popular Tamil Artists
+                            </h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-10">
+                              {popularTamilArtists.map((artist) => (
+                                <div 
+                                  key={artist.id}
+                                  onClick={() => handleSelectArtist(artist)}
+                                  className="bg-panel-bg/40 border border-white/5 hover:border-primary-blue/30 rounded-3xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,119,255,0.1)] group"
+                                >
+                                  <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden mb-4 shadow-lg relative">
+                                    <img 
+                                      src={artist.thumbnail || 'https://via.placeholder.com/150'} 
+                                      alt={artist.name}
+                                      className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                                    />
+                                  </div>
+                                  <h3 className="font-bold text-sm md:text-base line-clamp-1 group-hover:text-primary-blue transition-colors">{artist.name}</h3>
+                                  <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Artist</span>
+                                </div>
+                              ))}
+                            </div>
+
+                            <h2 className="text-2xl font-bold mb-6 flex items-center">
+                              <span className="w-2 h-8 bg-purple-500 rounded-full mr-3 inline-block"></span>
+                              Popular English Artists
+                            </h2>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                              {popularEnglishArtists.map((artist) => (
+                                <div 
+                                  key={artist.id}
+                                  onClick={() => handleSelectArtist(artist)}
+                                  className="bg-panel-bg/40 border border-white/5 hover:border-primary-blue/30 rounded-3xl p-4 flex flex-col items-center text-center cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_30px_rgba(0,119,255,0.1)] group"
+                                >
+                                  <div className="w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden mb-4 shadow-lg relative">
+                                    <img 
+                                      src={artist.thumbnail || 'https://via.placeholder.com/150'} 
+                                      alt={artist.name}
+                                      className="w-full h-full object-cover transition duration-300 group-hover:scale-105"
+                                    />
+                                  </div>
+                                  <h3 className="font-bold text-sm md:text-base line-clamp-1 group-hover:text-primary-blue transition-colors">{artist.name}</h3>
+                                  <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Artist</span>
+                                </div>
+                              ))}
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
