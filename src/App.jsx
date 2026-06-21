@@ -22,6 +22,7 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
+  const [toast, setToast] = useState(null);
   const [homeData, setHomeData] = useState([]);
   const [homeAlbums, setHomeAlbums] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
@@ -68,6 +69,17 @@ const App = () => {
     { id: '615155', name: 'The Weeknd', thumbnail: 'https://c.saavncdn.com/artists/The_Weeknd_002_20241003071400_150x150.jpg' },
     { id: '568565', name: 'Justin Bieber', thumbnail: 'https://c.saavncdn.com/artists/Justin_Bieber_005_20201127112218_150x150.jpg' }
   ];
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   // Restores user session on initial load
   useEffect(() => {
@@ -158,10 +170,11 @@ const App = () => {
       const res = await axios.post('http://localhost:5000/api/auth/playlists', { name });
       if (res.data && res.data.playlists) {
         setUser(prev => ({ ...prev, playlists: res.data.playlists }));
+        showToast(`Playlist "${name}" created!`);
       }
     } catch (err) {
       console.error('Failed to create playlist', err);
-      alert('Error creating playlist. Please try again.');
+      showToast('Error creating playlist. Please try again.', 'error');
     }
   };
 
@@ -171,13 +184,14 @@ const App = () => {
       const res = await axios.delete(`http://localhost:5000/api/auth/playlists/${playlistId}`);
       if (res.data && res.data.playlists) {
         setUser(prev => ({ ...prev, playlists: res.data.playlists }));
+        showToast('Playlist deleted successfully!');
         if (activeView === `custom-${playlistId}`) {
           setActiveView('Home');
         }
       }
     } catch (err) {
       console.error('Failed to delete playlist', err);
-      alert('Error deleting playlist.');
+      showToast('Error deleting playlist.', 'error');
     }
   };
 
@@ -186,11 +200,12 @@ const App = () => {
       const res = await axios.post(`http://localhost:5000/api/auth/playlists/${playlistId}/songs`, { song });
       if (res.data && res.data.playlists) {
         setUser(prev => ({ ...prev, playlists: res.data.playlists }));
-        alert('Song added to playlist!');
+        const playlistName = res.data.playlists.find(p => p._id === playlistId)?.name || 'Playlist';
+        showToast(`Added "${song.title}" to "${playlistName}"!`);
       }
     } catch (err) {
       console.error('Failed to add song to playlist', err);
-      alert(err.response?.data?.message || 'Error adding song to playlist.');
+      showToast(err.response?.data?.message || 'Error adding song to playlist.', 'error');
     }
   };
 
@@ -199,10 +214,11 @@ const App = () => {
       const res = await axios.delete(`http://localhost:5000/api/auth/playlists/${playlistId}/songs/${songId}`);
       if (res.data && res.data.playlists) {
         setUser(prev => ({ ...prev, playlists: res.data.playlists }));
+        showToast('Song removed from playlist.');
       }
     } catch (err) {
       console.error('Failed to remove song from playlist', err);
-      alert('Error removing song from playlist.');
+      showToast('Error removing song from playlist.', 'error');
     }
   };
 
@@ -851,6 +867,18 @@ const App = () => {
         onClose={() => setIsAuthModalOpen(false)} 
         onAuthSuccess={handleAuthSuccess} 
       />
+
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 animate-slideIn">
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl border backdrop-blur-xl shadow-2xl transition-all duration-300 ${
+            toast.type === 'error' 
+              ? 'bg-red-500/10 border-red-500/20 text-red-400' 
+              : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+          }`}>
+            <span className="font-semibold text-sm">{toast.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
