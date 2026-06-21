@@ -121,4 +121,83 @@ router.post('/recent', authenticateToken, async (req, res) => {
   }
 });
 
+// Create a custom playlist
+router.post('/playlists', authenticateToken, async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ message: 'Playlist name is required' });
+    }
+    
+    req.user.playlists.push({ name, songs: [] });
+    await req.user.save();
+    
+    res.status(201).json({ playlists: req.user.playlists });
+  } catch (error) {
+    console.error('Create playlist error:', error);
+    res.status(500).json({ message: 'Failed to create playlist' });
+  }
+});
+
+// Delete a custom playlist
+router.delete('/playlists/:playlistId', authenticateToken, async (req, res) => {
+  try {
+    const { playlistId } = req.params;
+    req.user.playlists = req.user.playlists.filter(p => p._id.toString() !== playlistId);
+    await req.user.save();
+    
+    res.json({ playlists: req.user.playlists });
+  } catch (error) {
+    console.error('Delete playlist error:', error);
+    res.status(500).json({ message: 'Failed to delete playlist' });
+  }
+});
+
+// Add a song to a custom playlist
+router.post('/playlists/:playlistId/songs', authenticateToken, async (req, res) => {
+  try {
+    const { playlistId } = req.params;
+    const { song } = req.body;
+    
+    const playlist = req.user.playlists.id(playlistId);
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found' });
+    }
+    
+    // Check if song already exists in the playlist
+    const songExists = playlist.songs.find(s => s.id === song.id);
+    if (songExists) {
+      return res.status(400).json({ message: 'Song already in playlist' });
+    }
+    
+    playlist.songs.push(song);
+    await req.user.save();
+    
+    res.json({ playlists: req.user.playlists });
+  } catch (error) {
+    console.error('Add song to playlist error:', error);
+    res.status(500).json({ message: 'Failed to add song to playlist' });
+  }
+});
+
+// Remove a song from a custom playlist
+router.delete('/playlists/:playlistId/songs/:songId', authenticateToken, async (req, res) => {
+  try {
+    const { playlistId, songId } = req.params;
+    
+    const playlist = req.user.playlists.id(playlistId);
+    if (!playlist) {
+      return res.status(404).json({ message: 'Playlist not found' });
+    }
+    
+    playlist.songs = playlist.songs.filter(s => s.id !== songId);
+    await req.user.save();
+    
+    res.json({ playlists: req.user.playlists });
+  } catch (error) {
+    console.error('Remove song from playlist error:', error);
+    res.status(500).json({ message: 'Failed to remove song' });
+  }
+});
+
 export default router;

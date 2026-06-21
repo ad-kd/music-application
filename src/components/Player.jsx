@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Shuffle, Repeat, ListMusic, ChevronDown } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Heart, Shuffle, Repeat, ListMusic, ChevronDown, Plus } from 'lucide-react';
 
 const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds)) return '0:00';
@@ -8,7 +8,7 @@ const formatTime = (seconds) => {
   return `${m}:${s}`;
 };
 
-const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite }) => {
+const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite, user, onAddToPlaylist }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
   const [isMuted, setIsMuted] = useState(false);
@@ -17,6 +17,7 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
   const [isRepeating, setIsRepeating] = useState(false);
   const [isShuffling, setIsShuffling] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showPlaylistMenu, setShowPlaylistMenu] = useState(false);
 
   const audioRef = useRef(null);
 
@@ -217,6 +218,43 @@ const Player = ({ currentSong, songList, onSongChange, favorites, toggleFavorite
           >
             <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isLiked ? 'fill-current' : ''}`} />
           </button>
+          {user && user.playlists && user.playlists.length > 0 && (
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPlaylistMenu(!showPlaylistMenu);
+                }}
+                className={`transition-colors mr-2 md:mr-0 ${showPlaylistMenu ? 'text-primary-blue' : 'text-slate-500 hover:text-white'}`}
+                title="Add to Playlist"
+              >
+                <Plus className="w-4 h-4 md:w-5 md:h-5" />
+              </button>
+              
+              {showPlaylistMenu && (
+                <div className="absolute left-0 bottom-full mb-3 w-48 rounded-2xl border border-slate-800 bg-[#08090d]/95 p-2 shadow-2xl backdrop-blur-xl z-50">
+                  <div className="px-3 py-1.5 text-xs text-slate-500 border-b border-slate-800/60 font-semibold mb-1">
+                    Add to Playlist:
+                  </div>
+                  <ul className="max-h-32 overflow-y-auto">
+                    {user.playlists.map((playlist) => (
+                      <li key={playlist._id}>
+                        <button 
+                          onClick={() => {
+                            onAddToPlaylist(playlist._id, currentSong);
+                            setShowPlaylistMenu(false);
+                          }}
+                          className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:bg-white/5 hover:text-white transition-colors truncate"
+                        >
+                          {playlist.name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Main Controls */}

@@ -1,9 +1,9 @@
 import React from 'react';
-import { Home, Heart, Clock, Music, Users, ListMusic, Disc } from 'lucide-react';
+import { Home, Heart, Clock, Music, Users, ListMusic, Disc, Plus } from 'lucide-react';
 
-const Sidebar = ({ activeView, setActiveView }) => {
+const Sidebar = ({ activeView, setActiveView, user, onPlaylistSelect, onCreatePlaylist }) => {
   return (
-    <div className="w-64 bg-panel-bg h-[calc(100vh-140px)] rounded-3xl p-6 hidden md:flex flex-col mx-4 mt-4 border border-primary-blue/20">
+    <div className="w-64 bg-panel-bg h-[calc(100vh-140px)] rounded-3xl p-6 hidden md:flex flex-col mx-4 mt-4 border border-primary-blue/20 overflow-y-auto">
       <div className="space-y-8">
         <div>
           <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Features</h3>
@@ -79,6 +79,40 @@ const Sidebar = ({ activeView, setActiveView }) => {
             </li>
           </ul>
         </div>
+
+        {user && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-slate-400 text-xs font-bold uppercase tracking-widest">My Playlists</h3>
+              <button 
+                onClick={onCreatePlaylist}
+                className="text-slate-400 hover:text-primary-blue transition-colors p-1"
+                title="Create Playlist"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+            {user.playlists && user.playlists.length > 0 ? (
+              <ul className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                {user.playlists.map((playlist) => (
+                  <li key={playlist._id}>
+                    <button 
+                      onClick={() => onPlaylistSelect(playlist)}
+                      className={`flex items-center w-full text-left font-medium transition text-sm ${
+                        activeView === `custom-${playlist._id}` ? 'text-primary-blue' : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      <ListMusic className="w-4 h-4 mr-3 shrink-0" />
+                      <span className="truncate">{playlist.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">No custom playlists. Click '+' to create one.</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

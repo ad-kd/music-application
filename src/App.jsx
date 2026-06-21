@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import SongList from './components/SongList';
 import Player from './components/Player';
 import AuthModal from './components/AuthModal';
+import CreatePlaylistModal from './components/CreatePlaylistModal';
 import { 
   searchMusic, 
   getTrendingMusic, 
@@ -20,6 +21,7 @@ import { Play, Music, Users, ListMusic, Disc } from 'lucide-react';
 const App = () => {
   const [user, setUser] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
   const [homeData, setHomeData] = useState([]);
   const [homeAlbums, setHomeAlbums] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
@@ -145,6 +147,63 @@ const App = () => {
     // Revert back to local guest storage
     setFavorites(JSON.parse(localStorage.getItem('spotifyFavorites')) || []);
     setRecentlyPlayed(JSON.parse(localStorage.getItem('spotifyRecent')) || []);
+  };
+
+  const handleCreatePlaylist = () => {
+    setIsCreatePlaylistOpen(true);
+  };
+
+  const handleCreatePlaylistSubmit = async (name) => {
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/playlists', { name });
+      if (res.data && res.data.playlists) {
+        setUser(prev => ({ ...prev, playlists: res.data.playlists }));
+      }
+    } catch (err) {
+      console.error('Failed to create playlist', err);
+      alert('Error creating playlist. Please try again.');
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId) => {
+    if (!window.confirm('Are you sure you want to delete this playlist?')) return;
+    try {
+      const res = await axios.delete(`http://localhost:5000/api/auth/playlists/${playlistId}`);
+      if (res.data && res.data.playlists) {
+        setUser(prev => ({ ...prev, playlists: res.data.playlists }));
+        if (activeView === `custom-${playlistId}`) {
+          setActiveView('Home');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to delete playlist', err);
+      alert('Error deleting playlist.');
+    }
+  };
+
+  const handleAddToPlaylist = async (playlistId, song) => {
+    try {
+      const res = await axios.post(`http://localhost:5000/api/auth/playlists/${playlistId}/songs`, { song });
+      if (res.data && res.data.playlists) {
+        setUser(prev => ({ ...prev, playlists: res.data.playlists }));
+        alert('Song added to playlist!');
+      }
+    } catch (err) {
+      console.error('Failed to add song to playlist', err);
+      alert(err.response?.data?.message || 'Error adding song to playlist.');
+    }
+  };
+
+  const handleRemoveFromPlaylist = async (playlistId, songId) => {
+    try {
+      const res = await axios.delete(`http://localhost:5000/api/auth/playlists/${playlistId}/songs/${songId}`);
+      if (res.data && res.data.playlists) {
+        setUser(prev => ({ ...prev, playlists: res.data.playlists }));
+      }
+    } catch (err) {
+      console.error('Failed to remove song from playlist', err);
+      alert('Error removing song from playlist.');
+    }
   };
 
   const toggleFavorite = async (song) => {
@@ -278,10 +337,10 @@ const App = () => {
     setIsLoading(false);
   };
 
-  // Determine current active list of songs for player logic
   const currentSongList = activeView === 'Favorites' ? favorites :
                           activeView === 'Recent' ? recentlyPlayed :
                           activeView === 'Trending' ? trendingSongs :
+                          activeView.startsWith('custom-') ? (user?.playlists?.find(p => `custom-${p._id}` === activeView)?.songs || []) :
                           selectedArtist?.songs ? selectedArtist.songs :
                           selectedAlbum?.songs ? selectedAlbum.songs :
                           selectedPlaylist?.songs ? selectedPlaylist.songs :
@@ -313,14 +372,27 @@ const App = () => {
         />
 
         <div className="flex w-full mt-2">
-          <Sidebar activeView={activeView} setActiveView={(view) => {
-            setActiveView(view);
-            setSearchResults(null);
-            setSelectedArtist(null);
-            setSelectedAlbum(null);
-            setSelectedPlaylist(null);
-            setSearchQuery('');
-          }} />
+          <Sidebar 
+            activeView={activeView} 
+            setActiveView={(view) => {
+              setActiveView(view);
+              setSearchResults(null);
+              setSelectedArtist(null);
+              setSelectedAlbum(null);
+              setSelectedPlaylist(null);
+              setSearchQuery('');
+            }} 
+            user={user}
+            onPlaylistSelect={(playlist) => {
+              setActiveView(`custom-${playlist._id}`);
+              setSearchResults(null);
+              setSelectedArtist(null);
+              setSelectedAlbum(null);
+              setSelectedPlaylist(null);
+              setSearchQuery('');
+            }}
+            onCreatePlaylist={handleCreatePlaylist}
+          />
           
           <main className="flex-1 px-4 py-8 md:px-8 w-full max-w-[1200px] mx-auto">
             
@@ -339,12 +411,53 @@ const App = () => {
                     Clear Search
                   </button>
                 </div>
-                <SongList songs={searchResults} onPlay={handlePlay} isLoading={isLoading} />
+                <SongList 
+                  songs={searchResults} 
+                  onPlay={handlePlay} 
+                  isLoading={isLoading} 
+                  user={user}
+                  onAddToPlaylist={handleAddToPlaylist}
+                />
               </div>
             )}
 
-            {!searchResults && (
+             {!searchResults && (
               <>
+                {/* Custom User Playlist View */}
+                {activeView.startsWith('custom-') && (
+                  (() => {
+                    const playlistId = activeView.replace('custom-', '');
+                    const playlist = user?.playlists?.find(p => p._id === playlistId);
+                    if (!playlist) return <div className="text-slate-400">Playlist not found.</div>;
+                    
+                    return (
+                      <div className="mb-8 animate-fadeIn">
+                        <div className="flex items-center justify-between mb-6 bg-white/5 p-6 rounded-3xl border border-white/5">
+                          <div>
+                            <span className="text-xs uppercase tracking-widest text-primary-blue font-bold">Custom Playlist</span>
+                            <h2 className="text-3xl md:text-5xl font-black mt-1">{playlist.name}</h2>
+                            <p className="text-slate-400 text-xs mt-2">{playlist.songs?.length || 0} Songs</p>
+                          </div>
+                          <button 
+                            onClick={() => handleDeletePlaylist(playlist._id)}
+                            className="text-sm font-medium text-red-400 hover:text-red-300 transition-colors border border-red-500/20 hover:border-red-500/50 rounded-full px-4 py-1.5 bg-red-500/5"
+                          >
+                            Delete Playlist
+                          </button>
+                        </div>
+                        <SongList 
+                          songs={playlist.songs || []} 
+                          onPlay={handlePlay} 
+                          isLoading={false} 
+                          user={user}
+                          isCustomPlaylist={true}
+                          onRemoveFromPlaylist={(songId) => handleRemoveFromPlaylist(playlist._id, songId)}
+                        />
+                      </div>
+                    );
+                  })()
+                )}
+
                 {/* Favorites View */}
                 {activeView === 'Favorites' && (
                   <div className="mb-8">
@@ -352,7 +465,13 @@ const App = () => {
                       <span className="w-2 h-8 bg-pink-500 rounded-full mr-3 inline-block"></span>
                       Your Favorites
                     </h2>
-                    <SongList songs={favorites} onPlay={handlePlay} isLoading={false} />
+                    <SongList 
+                      songs={favorites} 
+                      onPlay={handlePlay} 
+                      isLoading={false} 
+                      user={user}
+                      onAddToPlaylist={handleAddToPlaylist}
+                    />
                   </div>
                 )}
 
@@ -363,7 +482,13 @@ const App = () => {
                       <span className="w-2 h-8 bg-purple-500 rounded-full mr-3 inline-block"></span>
                       Recently Played
                     </h2>
-                    <SongList songs={recentlyPlayed} onPlay={handlePlay} isLoading={false} />
+                    <SongList 
+                      songs={recentlyPlayed} 
+                      onPlay={handlePlay} 
+                      isLoading={false} 
+                      user={user}
+                      onAddToPlaylist={handleAddToPlaylist}
+                    />
                   </div>
                 )}
 
@@ -374,7 +499,13 @@ const App = () => {
                       <span className="w-2 h-8 bg-orange-500 rounded-full mr-3 inline-block"></span>
                       Tamil Trending Hits
                     </h2>
-                    <SongList songs={trendingSongs} onPlay={handlePlay} isLoading={isLoading} />
+                    <SongList 
+                      songs={trendingSongs} 
+                      onPlay={handlePlay} 
+                      isLoading={isLoading} 
+                      user={user}
+                      onAddToPlaylist={handleAddToPlaylist}
+                    />
                   </div>
                 )}
 
@@ -400,7 +531,13 @@ const App = () => {
                             <h2 className="text-3xl md:text-5xl font-black mt-1">{selectedArtist.name}</h2>
                           </div>
                         </div>
-                        <SongList songs={selectedArtist.songs || []} onPlay={handlePlay} isLoading={isLoading} />
+                        <SongList 
+                          songs={selectedArtist.songs || []} 
+                          onPlay={handlePlay} 
+                          isLoading={isLoading} 
+                          user={user}
+                          onAddToPlaylist={handleAddToPlaylist}
+                        />
                       </div>
                     ) : (
                       <div>
@@ -516,7 +653,13 @@ const App = () => {
                             <p className="text-slate-500 text-xs mt-1">{selectedAlbum.year}</p>
                           </div>
                         </div>
-                        <SongList songs={selectedAlbum.songs || []} onPlay={handlePlay} isLoading={isLoading} />
+                        <SongList 
+                          songs={selectedAlbum.songs || []} 
+                          onPlay={handlePlay} 
+                          isLoading={isLoading} 
+                          user={user}
+                          onAddToPlaylist={handleAddToPlaylist}
+                        />
                       </div>
                     ) : (
                       <div>
@@ -578,7 +721,13 @@ const App = () => {
                             <p className="text-slate-400 text-xs mt-2">{selectedPlaylist.songCount} Songs • {selectedPlaylist.language}</p>
                           </div>
                         </div>
-                        <SongList songs={selectedPlaylist.songs || []} onPlay={handlePlay} isLoading={isLoading} />
+                        <SongList 
+                          songs={selectedPlaylist.songs || []} 
+                          onPlay={handlePlay} 
+                          isLoading={isLoading} 
+                          user={user}
+                          onAddToPlaylist={handleAddToPlaylist}
+                        />
                       </div>
                     ) : (
                       <div>
@@ -631,7 +780,13 @@ const App = () => {
                               <span className="w-2 h-8 bg-primary-blue rounded-full mr-3 inline-block"></span>
                               {category.title}
                             </h2>
-                            <SongList songs={category.songs} onPlay={handlePlay} isLoading={false} />
+                            <SongList 
+                              songs={category.songs} 
+                              onPlay={handlePlay} 
+                              isLoading={false} 
+                              user={user}
+                              onAddToPlaylist={handleAddToPlaylist}
+                            />
                           </div>
                         ))}
 
@@ -681,6 +836,14 @@ const App = () => {
         onSongChange={handlePlay} 
         favorites={favorites}
         toggleFavorite={toggleFavorite}
+        user={user}
+        onAddToPlaylist={handleAddToPlaylist}
+      />
+
+      <CreatePlaylistModal 
+        isOpen={isCreatePlaylistOpen} 
+        onClose={() => setIsCreatePlaylistOpen(false)} 
+        onCreate={handleCreatePlaylistSubmit} 
       />
 
       <AuthModal 
