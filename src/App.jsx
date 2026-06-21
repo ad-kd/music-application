@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import Navbar from './components/navbar';
 import Sidebar from './components/Sidebar';
 import SongList from './components/SongList';
 import Player from './components/Player';
+import AuthModal from './components/AuthModal';
 import { 
   searchMusic, 
   getTrendingMusic, 
@@ -16,6 +18,8 @@ import {
 import { Play, Music, Users, ListMusic, Disc } from 'lucide-react';
 
 const App = () => {
+  const [user, setUser] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [homeData, setHomeData] = useState([]);
   const [homeAlbums, setHomeAlbums] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
@@ -63,27 +67,119 @@ const App = () => {
     { id: '568565', name: 'Justin Bieber', thumbnail: 'https://c.saavncdn.com/artists/Justin_Bieber_005_20201127112218_150x150.jpg' }
   ];
 
+  // Restores user session on initial load
   useEffect(() => {
-    localStorage.setItem('spotifyFavorites', JSON.stringify(favorites));
-  }, [favorites]);
+    const token = localStorage.getItem('spotifyToken');
+    if (token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.get('http://localhost:5000/api/auth/me')
+        .then(res => {
+          if (res.data && res.data.user) {
+            setUser(res.data.user);
+            setFavorites(res.data.user.favorites || []);
+            setRecentlyPlayed(res.data.user.recent || []);
+          }
+        })
+        .catch(err => {
+          console.error('Session restore failed', err);
+          localStorage.removeItem('spotifyToken');
+          delete axios.defaults.headers.common['Authorization'];
+        });
+    }
+  }, []);
+
+  // Save guest lists to local storage only if not logged in
+  useEffect(() => {
+    if (!user) {
+      localStorage.setItem('spotifyFavorites', JSON.stringify(favorites));
+    }
+  }, [favorites, user]);
 
   useEffect(() => {
-    localStorage.setItem('spotifyRecent', JSON.stringify(recentlyPlayed));
-  }, [recentlyPlayed]);
+    if (!user) {
+      localStorage.setItem('spotifyRecent', JSON.stringify(recentlyPlayed));
+    }
+  }, [recentlyPlayed, user]);
 
-  const toggleFavorite = (song) => {
-    setFavorites(prev => {
-      const isFav = prev.find(s => s.id === song.id);
-      if (isFav) return prev.filter(s => s.id !== song.id);
-      return [song, ...prev];
+  const handleAuthSuccess = async (userData, token) => {
+    localStorage.setItem('spotifyToken', token);
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    setUser(userData);
+
+    // Merge logic: merge local guest storage items into DB
+    const localFavs = JSON.parse(localStorage.getItem('spotifyFavorites')) || [];
+    const localRecent = JSON.parse(localStorage.getItem('spotifyRecent')) || [];
+
+    const mergedFavs = [...userData.favorites];
+    localFavs.forEach(song => {
+      if (!mergedFavs.find(s => s.id === song.id)) {
+        mergedFavs.push(song);
+      }
     });
+
+    const mergedRecent = [...userData.recent];
+    localRecent.forEach(song => {
+      if (!mergedRecent.find(s => s.id === song.id)) {
+        mergedRecent.push(song);
+      }
+    });
+
+    setFavorites(mergedFavs);
+    setRecentlyPlayed(mergedRecent);
+
+    // Save merged lists to the database
+    try {
+      await Promise.all([
+        axios.post('http://localhost:5000/api/auth/favorites', { favorites: mergedFavs }),
+        axios.post('http://localhost:5000/api/auth/recent', { recent: mergedRecent })
+      ]);
+    } catch (e) {
+      console.error('Failed to sync merged lists to database', e);
+    }
   };
 
-  const addToRecent = (song) => {
-    setRecentlyPlayed(prev => {
-      const filtered = prev.filter(s => s.id !== song.id);
-      return [song, ...filtered].slice(0, 50); // Keep last 50
-    });
+  const handleLogout = () => {
+    localStorage.removeItem('spotifyToken');
+    delete axios.defaults.headers.common['Authorization'];
+    setUser(null);
+    // Revert back to local guest storage
+    setFavorites(JSON.parse(localStorage.getItem('spotifyFavorites')) || []);
+    setRecentlyPlayed(JSON.parse(localStorage.getItem('spotifyRecent')) || []);
+  };
+
+  const toggleFavorite = async (song) => {
+    const updatedFavs = (() => {
+      const isFav = favorites.find(s => s.id === song.id);
+      if (isFav) return favorites.filter(s => s.id !== song.id);
+      return [song, ...favorites];
+    })();
+    
+    setFavorites(updatedFavs);
+
+    if (user) {
+      try {
+        await axios.post('http://localhost:5000/api/auth/favorites', { favorites: updatedFavs });
+      } catch (err) {
+        console.error('Failed to sync favorite song', err);
+      }
+    }
+  };
+
+  const addToRecent = async (song) => {
+    const updatedRecent = (() => {
+      const filtered = recentlyPlayed.filter(s => s.id !== song.id);
+      return [song, ...filtered].slice(0, 50);
+    })();
+
+    setRecentlyPlayed(updatedRecent);
+
+    if (user) {
+      try {
+        await axios.post('http://localhost:5000/api/auth/recent', { recent: updatedRecent });
+      } catch (err) {
+        console.error('Failed to sync recent play', err);
+      }
+    }
   };
 
   // Fetch initial home data & search categories (focused on Tamil Trending)
@@ -211,6 +307,9 @@ const App = () => {
           }} 
           onSearch={handleSearch} 
           onPlay={handlePlay} 
+          user={user}
+          onLogout={handleLogout}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
         />
 
         <div className="flex w-full mt-2">
@@ -582,6 +681,12 @@ const App = () => {
         onSongChange={handlePlay} 
         favorites={favorites}
         toggleFavorite={toggleFavorite}
+      />
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+        onAuthSuccess={handleAuthSuccess} 
       />
     </div>
   );
